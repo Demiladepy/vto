@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Virtual Try-On Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @keyframes fadeInResult {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .result-fade-in {
+        animation: fadeInResult 400ms ease-out forwards;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-zinc-950 font-sans text-zinc-100 antialiased">
+    <!-- Hero -->
+    <header class="border-b border-zinc-800/80 bg-zinc-950">
+      <div
+        class="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-16 md:flex-row md:items-start md:justify-between md:px-12 md:py-20 lg:px-20"
+      >
+        <div>
+          <h1 class="text-4xl font-semibold tracking-tight text-white md:text-5xl">
+            Virtual Try-On
+          </h1>
+          <p class="mt-4 max-w-xl text-lg leading-relaxed text-zinc-400">
+            Diffusion-based virtual try-on — built lean, designed to scale
+          </p>
+        </div>
+        <div class="shrink-0">
+          <span
+            class="inline-block rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-300"
+          >
+            Live demo · pre-rendered gallery
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Intro band -->
+    <section class="border-b border-zinc-800/80 bg-zinc-900/40">
+      <div
+        class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-16 sm:grid-cols-3 md:px-12 lg:px-20"
+      >
+        <div>
+          <p class="text-3xl font-semibold tracking-tight text-white">30s</p>
+          <p class="mt-1 text-sm text-zinc-400">avg generation</p>
+        </div>
+        <div>
+          <p class="text-3xl font-semibold tracking-tight text-white">CatVTON</p>
+          <p class="mt-1 text-sm text-zinc-400">Open-source CatVTON</p>
+        </div>
+        <div>
+          <p class="text-3xl font-semibold tracking-tight text-white">$0</p>
+          <p class="mt-1 text-sm text-zinc-400">marginal cost</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery + Result viewer -->
+    <main
+      class="mx-auto max-w-7xl px-6 py-20 md:px-12 lg:px-20"
+    >
+      <div class="lg:grid lg:grid-cols-5 lg:gap-16">
+        <!-- Gallery -->
+        <section id="gallery-section" class="lg:col-span-3" aria-labelledby="gallery-heading">
+          <h2 id="gallery-heading" class="text-2xl font-semibold tracking-tight text-white">
+            Try a look
+          </h2>
+          <p class="mt-2 text-sm text-zinc-400">
+            Select an input pair to view the generated try-on result.
+          </p>
+          <div
+            id="gallery"
+            class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2"
+          ></div>
+        </section>
+
+        <!-- Result viewer -->
+        <section
+          id="result-section"
+          class="mt-16 scroll-mt-8 lg:col-span-2 lg:mt-0 lg:sticky lg:top-8 lg:self-start"
+          aria-labelledby="result-heading"
+          aria-live="polite"
+        >
+          <h2 id="result-heading" class="text-2xl font-semibold tracking-tight text-white">
+            Result
+          </h2>
+
+          <!-- Empty -->
+          <div
+            id="result-empty"
+            class="mt-8 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/50 px-6 py-16 text-center"
+          >
+            <p class="text-sm leading-relaxed text-zinc-500">
+              Select a look from the gallery above to see the try-on.
+            </p>
+          </div>
+
+          <!-- Loading -->
+          <div id="result-loading" class="mt-8 hidden">
+            <div class="rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-12">
+              <div class="flex flex-col items-center text-center">
+                <div
+                  class="h-10 w-10 animate-spin rounded-full border-2 border-zinc-700 border-t-emerald-400"
+                  role="status"
+                  aria-label="Generating"
+                ></div>
+                <p class="mt-6 text-base font-medium text-white">
+                  Generating your try-on...
+                </p>
+                <div class="mt-8 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+                  <div
+                    id="progress-bar"
+                    class="h-full rounded-full bg-emerald-400"
+                    style="width: 0%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Result -->
+          <div id="result-content" class="mt-8 hidden">
+            <p id="result-caption" class="mb-4 text-sm font-medium text-emerald-400"></p>
+            <div class="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+              <img
+                id="result-image"
+                src=""
+                alt="Try-on result"
+                class="w-full object-contain"
+              />
+            </div>
+
+            <div class="mt-6 grid grid-cols-2 gap-4">
+              <div>
+                <p class="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  Person
+                </p>
+                <div class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
+                  <img
+                    id="thumb-person"
+                    src=""
+                    alt="Person input"
+                    class="aspect-[3/4] w-full object-cover"
+                  />
+                </div>
+              </div>
+              <div>
+                <p class="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  Garment
+                </p>
+                <div class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
+                  <img
+                    id="thumb-garment"
+                    src=""
+                    alt="Garment input"
+                    class="aspect-[3/4] w-full object-cover"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-8 flex flex-wrap gap-3">
+              <a
+                id="download-btn"
+                href="#"
+                download="tryon-result.jpg"
+                class="inline-flex items-center justify-center rounded-lg bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-300"
+              >
+                Download result
+              </a>
+              <button
+                id="try-another-btn"
+                type="button"
+                class="inline-flex items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 hover:bg-zinc-800"
+              >
+                Try another look
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- How it works -->
+    <section class="border-t border-zinc-800/80 bg-zinc-900/30">
+      <div class="mx-auto max-w-7xl px-6 py-20 md:px-12 lg:px-20">
+        <h2 class="text-2xl font-semibold tracking-tight text-white">How it works</h2>
+        <div class="mt-12 flex flex-col gap-10 md:flex-row md:gap-6">
+          <div class="flex flex-1 gap-4">
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-sm font-semibold text-emerald-400"
+            >
+              1
+            </div>
+            <div>
+              <p class="font-medium text-white">Input</p>
+              <p class="mt-1 text-sm leading-relaxed text-zinc-400">
+                User uploads a person photo and a garment photo.
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-1 gap-4">
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-sm font-semibold text-emerald-400"
+            >
+              2
+            </div>
+            <div>
+              <p class="font-medium text-white">Pre-check</p>
+              <p class="mt-1 text-sm leading-relaxed text-zinc-400">
+                Images are validated for size, format, and basic quality.
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-1 gap-4">
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-sm font-semibold text-emerald-400"
+            >
+              3
+            </div>
+            <div>
+              <p class="font-medium text-white">Inference</p>
+              <p class="mt-1 text-sm leading-relaxed text-zinc-400">
+                CatVTON diffusion model composites the garment onto the person.
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-1 gap-4">
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-sm font-semibold text-emerald-400"
+            >
+              4
+            </div>
+            <div>
+              <p class="font-medium text-white">Output</p>
+              <p class="mt-1 text-sm leading-relaxed text-zinc-400">
+                A photorealistic try-on image is returned for review or download.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-zinc-800/80">
+      <div
+        class="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-12 md:flex-row md:items-center md:justify-between md:px-12 lg:px-20"
+      >
+        <p class="max-w-xl text-sm leading-relaxed text-zinc-500">
+          Demo gallery shows real CatVTON model outputs. Live inference integration is the
+          next milestone.
+        </p>
+        <div class="flex items-center gap-4 text-sm text-zinc-400">
+          <span>Your Name</span>
+          <span class="text-zinc-700" aria-hidden="true">|</span>
+          <a
+            href="https://github.com/yourusername"
+            class="font-medium text-zinc-300 transition hover:text-emerald-400"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      const looks = [
+        {
+          id: 'pair_01',
+          person: 'images/pair_01/person.jpg',
+          garment: 'images/pair_01/garment.jpg',
+          result: 'images/pair_01/result.jpg',
+          caption: 'Casual Friday',
+        },
+        {
+          id: 'pair_02',
+          person: 'images/pair_02/person.jpg',
+          garment: 'images/pair_02/garment.jpg',
+          result: 'images/pair_02/result.jpg',
+          caption: 'Evening wear',
+        },
+        {
+          id: 'pair_03',
+          person: 'images/pair_03/person.jpg',
+          garment: 'images/pair_03/garment.jpg',
+          result: 'images/pair_03/result.jpg',
+          caption: 'Street style',
+        },
+        {
+          id: 'pair_04',
+          person: 'images/pair_04/person.jpg',
+          garment: 'images/pair_04/garment.jpg',
+          result: 'images/pair_04/result.jpg',
+          caption: 'Formal occasion',
+        },
+        {
+          id: 'pair_05',
+          person: 'images/pair_05/person.jpg',
+          garment: 'images/pair_05/garment.jpg',
+          result: 'images/pair_05/result.jpg',
+          caption: 'Weekend look',
+        },
+        {
+          id: 'pair_06',
+          person: 'images/pair_06/person.jpg',
+          garment: 'images/pair_06/garment.jpg',
+          result: 'images/pair_06/result.jpg',
+          caption: 'Statement piece',
+        },
+      ];
+
+      const LOADING_MS = 2800;
+
+      const galleryEl = document.getElementById('gallery');
+      const gallerySection = document.getElementById('gallery-section');
+      const resultSection = document.getElementById('result-section');
+      const resultEmpty = document.getElementById('result-empty');
+      const resultLoading = document.getElementById('result-loading');
+      const resultContent = document.getElementById('result-content');
+      const progressBar = document.getElementById('progress-bar');
+      const resultImage = document.getElementById('result-image');
+      const resultCaption = document.getElementById('result-caption');
+      const thumbPerson = document.getElementById('thumb-person');
+      const thumbGarment = document.getElementById('thumb-garment');
+      const downloadBtn = document.getElementById('download-btn');
+      const tryAnotherBtn = document.getElementById('try-another-btn');
+
+      let activeId = null;
+      let loadingFrame = null;
+      let loadingTimeout = null;
+      let pendingLook = null;
+
+      function renderGallery() {
+        galleryEl.innerHTML = looks
+          .map(
+            (look) => `
+          <button
+            type="button"
+            data-id="${look.id}"
+            class="gallery-card group w-full overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 text-left transition hover:scale-[1.02] hover:border-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+            aria-label="Try on ${look.caption}"
+          >
+            <div class="grid grid-cols-2 gap-px bg-zinc-800">
+              <div class="aspect-[3/4] overflow-hidden bg-zinc-950">
+                <img
+                  src="${look.person}"
+                  alt="Person for ${look.caption}"
+                  class="h-full w-full object-cover transition duration-300 group-hover:opacity-90"
+                  loading="lazy"
+                />
+              </div>
+              <div class="aspect-[3/4] overflow-hidden bg-zinc-950">
+                <img
+                  src="${look.garment}"
+                  alt="Garment for ${look.caption}"
+                  class="h-full w-full object-cover transition duration-300 group-hover:opacity-90"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-sm font-medium text-zinc-200">${look.caption}</span>
+              <span class="text-xs font-medium text-emerald-400 transition group-hover:text-emerald-300">
+                Try this look
+              </span>
+            </div>
+          </button>
+        `
+          )
+          .join('');
+
+        galleryEl.querySelectorAll('[data-id]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const look = looks.find((l) => l.id === btn.dataset.id);
+            if (look) selectLook(look);
+          });
+        });
+      }
+
+      function clearLoading() {
+        if (loadingFrame !== null) {
+          cancelAnimationFrame(loadingFrame);
+          loadingFrame = null;
+        }
+        if (loadingTimeout !== null) {
+          clearTimeout(loadingTimeout);
+          loadingTimeout = null;
+        }
+      }
+
+      function showState(state) {
+        resultEmpty.classList.toggle('hidden', state !== 'empty');
+        resultLoading.classList.toggle('hidden', state !== 'loading');
+        resultContent.classList.toggle('hidden', state !== 'result');
+      }
+
+      function animateProgress(onComplete) {
+        const start = performance.now();
+        progressBar.style.width = '0%';
+
+        function tick(now) {
+          const elapsed = now - start;
+          const pct = Math.min(100, (elapsed / LOADING_MS) * 100);
+          progressBar.style.width = pct + '%';
+
+          if (elapsed < LOADING_MS) {
+            loadingFrame = requestAnimationFrame(tick);
+          } else {
+            loadingFrame = null;
+            onComplete();
+          }
+        }
+
+        loadingFrame = requestAnimationFrame(tick);
+      }
+
+      function selectLook(look) {
+        if (activeId === look.id && !resultLoading.classList.contains('hidden')) {
+          return;
+        }
+
+        activeId = look.id;
+        pendingLook = look;
+        clearLoading();
+
+        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showState('loading');
+
+        animateProgress(() => {
+          resultCaption.textContent = look.caption;
+          resultImage.src = look.result;
+          resultImage.alt = 'Try-on result: ' + look.caption;
+          thumbPerson.src = look.person;
+          thumbGarment.src = look.garment;
+          downloadBtn.href = look.result;
+          downloadBtn.download = look.id + '-result.jpg';
+
+          resultImage.classList.remove('result-fade-in');
+          void resultImage.offsetWidth;
+          resultImage.classList.add('result-fade-in');
+
+          showState('result');
+          pendingLook = null;
+        });
+      }
+
+      tryAnotherBtn.addEventListener('click', () => {
+        activeId = null;
+        showState('empty');
+        gallerySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      renderGallery();
+    </script>
+  </body>
+</html>
